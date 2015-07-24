@@ -32,7 +32,7 @@ module.exports = (grunt) ->
             options:
                 singleQuotes: true
 
-            tiMonitor:
+            tiForms:
                 files:
                     'dist/tiForms.js': watchFiles.main.concat watchFiles.directives
 
@@ -69,4 +69,4 @@ module.exports = (grunt) ->
 
     # Default task(s).
     grunt.registerTask 'default', ['jshint', 'babel']
-    grunt.registerTask 'build', ['default', 'browserify', 'uglify', 'concat_css']
+    grunt.registerTask 'build', ['default', 'browserify', 'uglify', 'concat_css', 'ngAnnotate']
