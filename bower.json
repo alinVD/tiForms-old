@@ -1,0 +1,23 @@
+{
+  "name": "tiForms",
+  "version": "0.0.0",
+  "homepage": "https://github.com/alinVD/tiForms",
+  "authors": [
+    "tsclaus <tahsisclaus@yahoo.com>"
+  ],
+  "description": "Alpaca form generator/builder for Angular",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "1.2",
+    "jquery": "~2.1.4",
+    "alpaca": "~1.5.11",
+    "jquery-ui": "~1.11.4"
+  }
+}
