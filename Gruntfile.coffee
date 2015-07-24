@@ -68,5 +68,5 @@ module.exports = (grunt) ->
     grunt.loadNpmTasks 'grunt-browserify'
 
     # Default task(s).
-    grunt.registerTask 'default', ['jshint', 'babel']
+    grunt.registerTask 'default', ['babel']
     grunt.registerTask 'build', ['default', 'browserify', 'uglify', 'concat_css', 'ngAnnotate']
