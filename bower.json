@@ -17,7 +17,6 @@
   "dependencies": {
     "angular": "1.2",
     "jquery": "~2.1.4",
-    "alpaca": "~1.5.11",
     "jquery-ui": "~1.11.4"
   }
 }

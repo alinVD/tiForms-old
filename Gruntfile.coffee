@@ -4,7 +4,7 @@ module.exports = (grunt) ->
 
     watchFiles =
         main: ['build/module.js']
-        directives: ['build/directives/*.js']
+        components: ['build/components/**.js']
         css: ['src/css/*.css']
 
     # Project configuration.
@@ -24,7 +24,7 @@ module.exports = (grunt) ->
         uglify:
             build:
                 files: [{
-                    src: watchFiles.main.concat watchFiles.directives
+                    src: watchFiles.main.concat watchFiles.components
                     dest: 'dist/tiForms.min.js'
                 }]
 
@@ -34,7 +34,7 @@ module.exports = (grunt) ->
 
             tiForms:
                 files:
-                    'dist/tiForms.js': watchFiles.main.concat watchFiles.directives
+                    'dist/tiForms.js': watchFiles.main.concat watchFiles.components
 
         concat_css:
             all:
@@ -43,7 +43,7 @@ module.exports = (grunt) ->
 
         jshint:
             all:
-                src: watchFiles.main.concat watchFiles.directives
+                src: watchFiles.main.concat watchFiles.components
                 options:
                     jshintrc: true
 
