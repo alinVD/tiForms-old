@@ -31,10 +31,10 @@ gulp.task('minify', function () {
 });
 
 gulp.task('watch', ['dist'], function () {
-    var watcher = gulp.watch('./src/**/*.js', ['dist']);
+    var watcher = gulp.watch('./src/**/*.es6', ['dist']);
     watcher.on('change', function (event) {
         console.log('File ' + event.path + ' was ' + event.type + ', building scripts...');
     });
 });
 
-gulp.task('default', ['lint', 'dist', 'watch']);
+gulp.task('default', ['dist', 'watch']);
