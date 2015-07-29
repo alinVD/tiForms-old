@@ -4,11 +4,14 @@
 
 	</head>
 	<body>
-		<div ng-app="tiForms">
+		<div class="container-fluid" ng-app="tiForms">
 			<div ng-controller="testCtrl">
-				<div render-form="testForm"></div>
+				<div ti-form-render="testForm"></div>
 			</div>
 		</div>
+
+		<link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+		<script src="bower_components/lodash/lodash.js"></script>
 		<script src="bower_components/jquery/dist/jquery.js"></script>
 		<script src="bower_components/jquery-ui/jquery-ui.js"></script>
 		<script src="bower_components/angular/angular.js"></script>
