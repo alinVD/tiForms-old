@@ -3,55 +3,68 @@ angular.module('tiForms').factory('tiForms', [
 	function() {
 		function resolveFramework() {
 			return {
+				$root: (parentElement) => $('<div>').appendTo(parentElement),
 				title: {
-					size: 4,
-					text: 'Missing Title Text',
-					$structure: function(element, options) {
-						return {
-							title: options.subtitle ? ['subtitle'] : []
-						};
+					$renderer: function() {
+						return $(`<h${this.size}>${this.text}</h${this.size}>`).append(this.subtitle ? $(`<small> ${this.subtitle}</small>`) : null);
 					},
-					$renderers: {
-						title: function(element, options) {
-							return $(`<h${options.size}>${options.text}</h${options.size}>`);
-						},
-						subtitle: function(element, options) {
-							return $(`<small> ${options.subtitle}</small>`);
-						}
+					defaults: {
+						text: 'Missing title text',
+						size: 3
 					}
 				},
 				text: {
 					$evaluate: true,
-					$structure: 'input',
-					$renderers: {
-						input: function(element, options) {
-							return $(`<input>`);
-						}
+					$renderer: function() {
+						return $('<div class="form-group">').append(this.label ? $(`<label>${this.label}</div>`) : null).append($('<input type="text" class="form-control">').attr('placeholder', this.placeholder));
 					}
 				},
-				container: {
-					margin: '0',
-					border: '0px solid gray',
-					borderWidth: '0px',
-					padding: '0',
-					$structure: {padding: '$children'},
-					$renderers: {
-						padding: function(element, options) {
-							return $(`<div></div>`).css({
-								margin: options.margin,
-								border: options.border,
-								borderWidth: options.borderWidth,
-								padding: options.padding
-							});
+				number: {
+					$evaluate: true,
+					$renderer: function() {
+						return $('<div class="form-group">').append(this.label ? $(`<label>${this.label}</div>`) : null).append($('<input type="number" class="form-control">'));
+					}
+				},
+				input: {
+					evaluate: true,
+					$renderer: function() {
+						let $input = $('<input>'),
+							$label = this.label ? $(`<label>${this.label}<label>`) : $();
+
+						$input.attr({
+							placeholder: this.placeholder,
+							type: this.type
+						});
+
+						$input.style(this.xStyle);
+						$input.addClass(this.xClasses);
+						$input.attr(this.xAttr);
+
+						if(this.group) {
+							let $group = $('<div class="input-group');
+
+							if(this.group.left)
+								$group.append($(`<span class="input-group-addon">${this.group.left}</span>`));
+
+							$group.append($input);
+
+							if(this.group.right)
+								$group.append($(`<span class="input-group-addon">${this.group.right}</span>`));
+
+							$input = $group;
 						}
+
+						return $('<div class="form-group">').append($label).append($input);
 					}
 				},
 				submit: {
-					$structure: 'button',
-					$renderers: {
-						button: (element, options) => $('<div class="form-group">').append($(`<button>${options.text}</button>`)) 
+					$submit: true,
+					$renderer: function() {
+						return $('<div class="form-group">').append($(`<button class="btn btn-default">${this.text}</button>`));
 					},
-					text: 'Submit'
+					defaults: {
+						text: 'Submit'
+					}
 				}
 			};
 		}

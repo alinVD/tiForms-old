@@ -3,10 +3,7 @@ angular.module('tiForms').controller('testCtrl', ['$scope',
 		$scope.testForm = {
 			name: "Test Form",
 			elements: [
-				{
-					type: 'submit'
-				}
-			]
+				]
 		};
 	}
 ]);

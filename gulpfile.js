@@ -4,7 +4,9 @@ var gulp = require('gulp'),
     concat = require('gulp-concat'),
     rename = require('gulp-rename'),
     uglify = require('gulp-uglify'),
-    eslint = require('gulp-eslint');
+    eslint = require('gulp-eslint'),
+    typescript = require('gulp-typescript'),
+    phantom = require('gulp-phantom');
 
 gulp.task('lint', function () {
     return gulp.src(['src/**/*.es6'])
@@ -35,6 +37,23 @@ gulp.task('watch', ['dist'], function () {
     watcher.on('change', function (event) {
         console.log('File ' + event.path + ' was ' + event.type + ', building scripts...');
     });
+});
+
+gulp.task('testing', function() {
+    return gulp.src('./testing/testing.ts')
+        .pipe(typescript({
+            module: 'amd'
+        }))
+        .pipe(gulp.dest('./testing'));
+});
+
+gulp.task('phantom', function() {
+    return gulp.src('./testing/testing.js')
+        .pipe(gulp.dest('./tmp/'))
+        .pipe(phantom({
+            ext: '.json'
+        }))
+        .pipe(gulp.dest('./data/'));
 });
 
 gulp.task('default', ['dist', 'watch']);

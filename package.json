@@ -46,6 +46,7 @@
     "uglify": "^0.1.5"
   },
   "dependencies": {
-    "babel-eslint": "^4.0.5"
+    "babel-eslint": "^4.0.5",
+    "lodash": "^3.10.1"
   }
 }
