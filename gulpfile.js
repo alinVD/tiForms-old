@@ -32,6 +32,12 @@ gulp.task('minify', function () {
         .pipe(gulp.dest('dist'));
 });
 
+gulp.task('test', function() {
+    return gulp.src(['src/**/*.es6', 'bower_components/**/*.js'])
+        .pipe(concat('tiForms.js'))
+        .pipe(gulp.dest('testing'));
+});
+
 gulp.task('watch', ['dist'], function () {
     var watcher = gulp.watch('./src/**/*.es6', ['dist']);
     watcher.on('change', function (event) {

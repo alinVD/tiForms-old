@@ -1,35 +1,27 @@
-var _ = require('lodash'),
+const _ = require('lodash'),
 	fs = require('fs'),
 	webpage = require('webpage');
 
+const CURRENTPATH = phantom.libraryPath,
+	HTMLPATH = CURRENTPATH + '/../testing.html',
+	INPATH = CURRENTPATH + '/input/',
+	OUTPATH = CURRENTPATH + '/output/';
+
 var page = webpage.create(),
-	htmlpath = 'file:///home/tahsis/projects/tiForms/index.html',
-	inputpath = '/home/tahsis/projects/tiForms/testing/input/',
-	forms = _(fs.list(inputpath)).toArray().pull('.', '..').map((filename) => fs.read(inputpath + filename)).value();
+	forms = _(fs.list(INPATH)).toArray().pull('.', '..').map((filename) => ({ filename, content: JSON.parse(fs.read(INPATH + filename).replace(/\n/g, "")) })).value();
 
-page.open(htmlpath, function(status) {
-	if (status === 'fail') return console.log(`Opening test page ${htmlpath} failed`);
-	else if (status !== 'success') return console.log(`Unexpected status ${status}`);
-	else {
+page.open(HTMLPATH, function(status) {
+	if (status === 'success') {
 		_.forEach(forms, function(form) {
-			let ret = page.evaluate(function(form) {
-				var applied = false,
-					timelimit = 10000;
-
-				setTimeout(() => applied = true, timelimit);
-
+			page.evaluate(function(json) {
 				$('[ng-controller]').scope().$apply(function(scope) {
-					applied = true;
-					scope.testForm = form;
+					scope.testForm = json;
 				});
-
-				while (!applied) angular.noop();
-
-				return applied;
-
-			}, JSON.parse(form.replace(/\n/g, "")));
-			console.log(ret);
-			page.render('test.png');
+			}, form.content);
+			page.render(OUTPATH + form.filename.replace(/[^.]*$/, 'png'));
 		});
+	} else {
+		console.log(`Failed to open HTML file ${HTMLPATH} with status "${status}"`);
 	}
+	phantom.exit();
 });
