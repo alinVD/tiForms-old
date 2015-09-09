@@ -6,6 +6,9 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			let form = _.cloneDeep(formObject),
 				framework = tiForms.resolveFramework(),
+				globalOptions = _.merge({}, framework.options, formObject.options),
+				elements = framework.elements,
+				wrappers = framework.wrappers,
 				inputs = {},
 				attachTarget = framework.$root ? framework.$root.call(form, parentElement) : parentElement;
 				/*
@@ -73,9 +76,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					_.forEach(formItem, (unwrappedItem) => compileItem(unwrappedItem, parentElement));
 				} else {
 
-					reconcileFramework(formItem);
-
-					formItem.$element = renderElement(formItem);
+					let renderElement = renderItem(formItem);
 
 					if(formItem.$evaluate) compileInput(formItem);
 
@@ -87,29 +88,64 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			}
 
-			function renderElement(formItem) {
+			function renderItem(formItem, type = formItem.type) {
 
-				if(formItem.$renderer instanceof Function) {
-					return formItem.$renderer.call(formItem, renderElement);
-				} else if(formItem.$renderer instanceof Array && _.every(formItem.$renderer, (renderer) => renderer instanceof Function)) {
-					return _.reduce(formItem.$renderer, (renderedElement, renderer) => renderedElement.add(renderer.call(formItem, renderElement)), $());
-				} else {
-					console.error('Render Error: Renderer not valid');
-					return $('<div>Error renderering element</div>');
+				//ensure that user's input item has a defined type, the one required field for user inputs
+
+				if(!formItem.type) {
+					console.error('Render Error: Form item ', formItem, 'has no type');
+					return $();
 				}
-				/*
-				function actualRender(formItem) {
-					if(_.isString(formItem.$sub)) {
-						framework[formItem.$sub].$renderer
+
+				let frameworkItem = framework.items[type],
+					$subElement = $();
+
+				//ensure that the framework being used has defined behavior for the input type
+					
+				if(!frameworkItem) {
+					console.error(`Render Error: Item type ${type} is not defined in the framework`);
+					return $();
+				}
+
+				//ensure that the framework defined a renderer and that it is a function
+
+				if(!(frameworkItem.renderer instanceof Function)) {
+					console.error('Render Error: Framework item ', frameworkItem, ' is missing a renderer function');
+				}
+
+				//handle the framework item inheritance; all potential error in this process are handled in the recursive call and return an empty jQuery if it fails
+
+				if(frameworkItem.sub) {
+					$subElement = renderElement(formItem, formItem.sub);
+				}
+
+				//honor the frameworks default options for the input type.
+				//Does not prevent type from being overwritten,
+				//but there is no reason to overwrite type, as each set of defaults is already bound to a type and the related renderer can simply use a constant
+				//regardless, type is not overwritten before calling the subrenderer, so renderers can change their behavior if they detect they are being called for inheritance
+
+				let options = _.merge({}, frameworkItem.defaults, formItem)
+
+				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the ability to have child elements, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
+			
+				let $element = frameworkItem.renderer.call(options, options, $subElement, compileItem);
+
+				//wrap the rendered element, with options and global options as arguments, as options as this
+
+				if(frameworkItem.wrapper) {
+					let wrapper = framework.wrappers[frameworkItem.wrapper];
+					if(wrapper instanceof Function) {
+						wrapper.call(options, options, globalOptions, $element)
+					} else {
+						console.error(`Render Error: Wrapper ${frameworkItem.wrapper} missing`);
 					}
 				}
-				*/
 			}
 
 			function compileInput(formItem) {
 
 				if(!_.isString(formItem.name)) {
-					console.error('Render Error: Form input missing required name field');
+					console.error('Render Error: Form input missing required String "name"');
 				} else if (inputs[formItem.name]) {
 					console.error('Render Error: Form input name already in use');
 				} else {
