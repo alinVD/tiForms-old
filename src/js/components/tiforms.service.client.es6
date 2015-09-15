@@ -1,7 +1,7 @@
 angular.module('tiForms').factory('tiForms', [
 
 	function() {
-		function resolveFramework() {
+		function frameworks() {
 			return {
 				$root: (parentElement) => $('<div>').appendTo(parentElement),
 				title: {

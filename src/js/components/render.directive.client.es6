@@ -2,85 +2,24 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 	function(tiForms) {
 
-		function compileForm(formObject, parentElement, submitCB) {
+		function compileForm(formObject, frameworks, parentElement, submitCB) {
 
 			let form = _.cloneDeep(formObject),
-				framework = tiForms.resolveFramework(),
+				framework = frameworks instanceof Array ? frameworks[formObject.framework] : frameworks,
 				globalOptions = _.merge({}, framework.options, formObject.options),
 				elements = framework.elements,
 				wrappers = framework.wrappers,
-				inputs = {},
-				attachTarget = framework.$root ? framework.$root.call(form, parentElement) : parentElement;
-				/*
-				formRoot = framework.$root(form).appendTo(parentElement),
-				attachTarget = formRoot;
+				inputs = {};
 
-			if(framework.$attach === undefined) {
-				let children = attachTarget.children();
-				while(children.length) {
-					if(children.length > 1) {
-						console.warn('Framework Warning: $attach should be defined for non-linear root elements');
-					}
-					attachTarget = children.first();
-					children = attachTarget.children();
-				}
-			} else if(framework.$attach instanceof Function) {
-				attachTarget = framework.$attach.call(form, formRoot);
-			} else if(_.isString(framework.$attach)) {
-				attachTarget = formRoot.find('*').filter(framework.$attach);
-			} else {
-				console.log('Framework Error: $attach field type not supported');
-				return;
-			}*/
+			renderItems(form.elements, attachTarget);
 
-			compileItem(form.elements, attachTarget);
+			function renderItems(formItem, parentElement) {
 
-			function reconcileFramework(formItem) {
-				let itemFramework = framework[formItem.type],
-					defaults = itemFramework.defaults,
-					required = itemFramework.required === undefined ? [] : (itemFramework.required instanceof Array ? itemFramework.required : [itemFramework.required]);
-
-				//dandle core ($) fields
-				_.forEach(itemFramework, (val, key) => {
-					if(key[0] === '$') {
-						if(formItem[key] === undefined) {
-							formItem[key] = val;
-						} else {
-							console.warn('Render Warning: You have overwritten a core field. Proper behavior not gauranteed');
-						}
-					}
-				});
-
-				//handle default fields
-				_.forEach(defaults, (val, key) => {
-					if(key[0] === '$') {
-						console.warn('Framework Error: Core fields should be fields of the framework item, not subfields of its defaults object');
-					} else {
-						if(formItem[key] === undefined) {
-							formItem[key] = val;
-						}
-					}
-				});
-
-				//handle required fields
-				_.forEach(required, (val, key) => {
-					if(formItem[key] === undefined) {
-						console.error('Render Error: Required field not defined');
-					}
-				});
-			}
-
-			function compileItem(formItem, parentElement) {
-
-				if(formItem instanceof Array) {
+				if (formItem instanceof Array) {
 					_.forEach(formItem, (unwrappedItem) => compileItem(unwrappedItem, parentElement));
 				} else {
 
-					let renderElement = renderItem(formItem);
-
-					if(formItem.$evaluate) compileInput(formItem);
-
-					if(formItem.$submit) compileSubmit(formItem);
+					let $element = renderItem(formItem);
 
 					parentElement.append(formItem.$element);
 
@@ -92,7 +31,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				//ensure that user's input item has a defined type, the one required field for user inputs
 
-				if(!formItem.type) {
+				if (!formItem.type) {
 					console.error('Render Error: Form item ', formItem, 'has no type');
 					return $();
 				}
@@ -101,22 +40,22 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					$subElement = $();
 
 				//ensure that the framework being used has defined behavior for the input type
-					
-				if(!frameworkItem) {
+
+				if (!frameworkItem) {
 					console.error(`Render Error: Item type ${type} is not defined in the framework`);
 					return $();
 				}
 
 				//ensure that the framework defined a renderer and that it is a function
 
-				if(!(frameworkItem.renderer instanceof Function)) {
+				if (!(frameworkItem.renderer instanceof Function)) {
 					console.error('Render Error: Framework item ', frameworkItem, ' is missing a renderer function');
 				}
 
 				//handle the framework item inheritance; all potential error in this process are handled in the recursive call and return an empty jQuery if it fails
 
-				if(frameworkItem.sub) {
-					$subElement = renderElement(formItem, formItem.sub);
+				if (frameworkItem.sub) {
+					$subElement = renderItem(formItem, formItem.sub);
 				}
 
 				//honor the frameworks default options for the input type.
@@ -126,57 +65,95 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				let options = _.merge({}, frameworkItem.defaults, formItem)
 
-				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the ability to have child elements, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
-			
-				let $element = frameworkItem.renderer.call(options, options, $subElement, compileItem);
+				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the specialized renderers, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
 
-				//wrap the rendered element, with options and global options as arguments, as options as this
+				let boundRenderInput = _.wrap(formItem.name, renderInput),
+					renders = {input: boundRenderInput, submit: renderSubmit, items: renderItems},
+					$element = frameworkItem.renderer.call(options, options, $subElement, renders);
 
-				if(frameworkItem.wrapper) {
+				//handle input fields for noninheritance renders
+				
+				if(frameworkItem.input && type === formItem.type) {
+					if(!formItem.name) {
+						console.log('Render Error: Form item ', formItem, 'is an input element without a name');
+					} else if (inputs[formItem.name]) {
+						console.log('Render Error: Form item ', formitem, 'is an input element reusing a name (every single form item\'s name field must be unique)');
+					} else {
+						let inputFn = (frameworkItem.input instanceof Function ? frameworkItem.input : defaultInputFn);
+						inputs[formItem.name] = function() {
+							inputFn.call(formItem, formItem, $element);
+						}
+					}
+				}
+
+				//handle submit buttons
+
+				if(frameworkItem.submit) {
+
+				}
+
+				//wrap the rendered element, with options and global options as arguments, and options as this
+
+				if (frameworkItem.wrapper) {
 					let wrapper = framework.wrappers[frameworkItem.wrapper];
-					if(wrapper instanceof Function) {
-						wrapper.call(options, options, globalOptions, $element)
+					if (wrapper instanceof Function) {
+						$element = wrapper.call(options, options, globalOptions, $element)
 					} else {
 						console.error(`Render Error: Wrapper ${frameworkItem.wrapper} missing`);
 					}
 				}
+
+
+				return $element;
+
+
 			}
 
-			function compileInput(formItem) {
+			function renderInput(boundName, input, name = boundName) {
 
-				if(!_.isString(formItem.name)) {
-					console.error('Render Error: Form input missing required String "name"');
-				} else if (inputs[formItem.name]) {
-					console.error('Render Error: Form input name already in use');
+				//created output function should require no arguments (and should never be provided any to ensure val will work);
+
+				let outputFn = $.noop;
+
+				if(input instanceof Function) {
+					outputFn = input;
+				} else if (input instanceof $) {
+					outputFn = input.val;
+				} else if (input instance of HTMLElement) {
+					outputFn = $(input).val;
 				} else {
-					formItem.$evaluate = formItem.$evaluate instanceof Function ? formItem.$evaluate : defaultEvaluate;
-					inputs[formItem.name] = formItem;
+					console.error('Render Error: Trying to register an input improperly (argument ', input, ' needs to be a function or browser element)');
 				}
 
-				function defaultEvaluate(formElement) {
-					return formElement.find('*').addBack().filter('input').val();
+				if(inputs[name]) {
+					console.warn(`Render Warning: You are reusing the same name ${name} for an input`);
+				}
+
+				inputs[name] = outputFn;
+			}
+
+			function renderSubmit(element, intermediateFn = _.identity) {
+				
+				function getValues() {
+					return _.mapValues(inputs, (evalFn) => eval());
+				}
+
+				if(element instanceof HTMLElement) {
+					element = $(element);
+				}
+
+				if(element instanceof $) {
+					element.click(_.flow(getValues, intermediateFn, submitCB));
+				} else {
+					console.error('Render Error: Trying to register a submit with a nonelement (argument ', element, ' should be $ or DOM element');
 				}
 
 			}
 
-			function compileSubmit(formItem) {
+			//defined in this block to avoid instantiating repeatedly
 
-				var target;
-
-				if(_.isString(formItem.$target)) {
-					target = formItem.$element.find('*').addBack().filter(formItem.$target);
-				} else if(formItem.$target instanceof Function) {
-					target = formItem.$target.call(formItem, formItem.$element);
-				} else if(formItem.$target === undefined) {
-					target = formItem.$element.find('*').addBack().filter('button');
-				}
-
-				if(formItem.$submit instanceof Function) {
-					target.click(() => formItem.$submit.call(formItem, inputs, submitCB));
-				} else if(formItem.$submit === true) {
-					target.click(() => submitCB(_.mapValues(inputs, (formItem) => formItem.$evaluate.call(formItem, formItem.$element))));
-				}
-
+			function defaultInputFn(formElement) {
+				return formElement.find('*').addBack().filter('input').val();
 			}
 
 		}
@@ -185,7 +162,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			scope.$watch(attrs.tiFormRender, function(newForm) {
 				element.empty();
-				compileForm(newForm, element, (output) => scope.$apply((scope) => scope.output = output));
+				compileForm(newForm, tiForms.frameworks(), element, (output) => scope.$apply((scope) => scope.output = output));
 			}, true);
 
 		};
