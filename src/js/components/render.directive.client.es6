@@ -68,9 +68,10 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the specialized renderers, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
 
 				let boundRenderInput = _.wrap(formItem.name, renderInput),
-					renders = {input: boundRenderInput, submit: renderSubmit, items: renderItems},
-					$element = frameworkItem.renderer.call(options, options, $subElement, renders);
+					render = {input: boundRenderInput, submit: renderSubmit, items: renderItems},
+					$element = frameworkItem.renderer.call(options, options, $subElement, render);
 
+				/*
 				//handle input fields for noninheritance renders
 				
 				if(frameworkItem.input && type === formItem.type) {
@@ -85,12 +86,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 						}
 					}
 				}
-
-				//handle submit buttons
-
-				if(frameworkItem.submit) {
-
-				}
+				*/
 
 				//wrap the rendered element, with options and global options as arguments, and options as this
 
@@ -132,7 +128,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				inputs[name] = outputFn;
 			}
 
-			function renderSubmit(element, intermediateFn = _.identity) {
+			function renderSubmit(element, processorFn = _.identity) {
 				
 				function getValues() {
 					return _.mapValues(inputs, (evalFn) => eval());

@@ -70,7 +70,7 @@ angular.module('tiForms').factory('tiForms', [
 		}
 
 		return {
-			resolveFramework
+			frameworks
 		};
 	}
 ]);
