@@ -3,68 +3,88 @@ angular.module('tiForms').factory('tiForms', [
 	function() {
 		function frameworks() {
 			return {
-				$root: (parentElement) => $('<div>').appendTo(parentElement),
-				title: {
-					$renderer: function() {
-						return $(`<h${this.size}>${this.text}</h${this.size}>`).append(this.subtitle ? $(`<small> ${this.subtitle}</small>`) : null);
+				items: {
+					input: {
+						renderer: function(options, render) {
+							let $input = $('<input>');
+
+							$input.attr({
+								placeholder: options.placeholder,
+								type: this.type
+							});
+
+							$input.addClass('form-control');
+
+							render.input($input);
+
+							render.validity($input, function() {
+								$input.closest('form-group').removeClass('has-error').addClass('has-success');
+							}, function() {
+								$input.closest('form-group').addClass('has-error').removeClass('has-success');
+							});
+
+							if(options.group && options.group.left || options.group.right) {
+
+								$input = $('<div class="input-group">').append($input);
+
+								if(options.group.size) {
+									if(_.includes(['l', 'lg', 'large'], options.group.size)) $input.addClass('input-group-lg');
+									else if(_.includes(['s', 'sm', 'small'], options.group.size)) $input.addClass('input-group-sm');
+								}
+
+								if(options.group.left) $input.append($(`<span class="input-group-addon">${options.group.left}<span>`));
+								if(options.group.right) $input.append($(`<span class="input-group-addon">${options.group.right}<span>`));
+							} 
+
+							return $input;
+						}
 					},
-					defaults: {
-						text: 'Missing title text',
-						size: 3
+					text: {
+						sub: input;
+						renderer: function(options, render, $subElement) {
+							return $subElement;
+						}
+					},
+					password: {
+						sub: input;
+						renderer: function(options, render, $subElement) {
+							return $subElement;
+						}
+					},
+					email: {
+						sub: input;
+						renderer: function(options, render, $subElement) {
+							return $subElement;
+						}
+					},
+					select: {
+						
 					}
 				},
-				text: {
-					$evaluate: true,
-					$renderer: function() {
-						return $('<div class="form-group">').append(this.label ? $(`<label>${this.label}</div>`) : null).append($('<input type="text" class="form-control">').attr('placeholder', this.placeholder));
-					}
-				},
-				number: {
-					$evaluate: true,
-					$renderer: function() {
-						return $('<div class="form-group">').append(this.label ? $(`<label>${this.label}</div>`) : null).append($('<input type="number" class="form-control">'));
-					}
-				},
-				input: {
-					evaluate: true,
-					$renderer: function() {
-						let $input = $('<input>'),
-							$label = this.label ? $(`<label>${this.label}<label>`) : $();
+				wrappers: {
+					default: function($element, globalOptions, options) {
+						let columnSize = globalOptions.columnSize,
+							sizes = ['xs', 'sm', 'md', 'lg'];
 
-						$input.attr({
-							placeholder: this.placeholder,
-							type: this.type
-						});
+						if(columnSize instanceof Array) columnSize = {xs: size});
 
-						$input.style(this.xStyle);
-						$input.addClass(this.xClasses);
-						$input.attr(this.xAttr);
+						let $group = $('<div class="form-group">'),
+							$label = $('<label class="control-label>').appendTo($group),
+							$column = $('<div>').append($element).appendTo($group);
 
-						if(this.group) {
-							let $group = $('<div class="input-group');
-
-							if(this.group.left)
-								$group.append($(`<span class="input-group-addon">${this.group.left}</span>`));
-
-							$group.append($input);
-
-							if(this.group.right)
-								$group.append($(`<span class="input-group-addon">${this.group.right}</span>`));
-
-							$input = $group;
+						_.forEach(sizes, function(size) {
+							let arr = columnSize[size]
+							if(arr && arr.length > 1) {
+								$label.addClass(`col-${size}-${arr[0]}`);
+								$column.addClass(`col-${size}.${arr[1]}`);
+							}
 						}
 
-						return $('<div class="form-group">').append($label).append($input);
+						return $group;
 					}
 				},
-				submit: {
-					$submit: true,
-					$renderer: function() {
-						return $('<div class="form-group">').append($(`<button class="btn btn-default">${this.text}</button>`));
-					},
-					defaults: {
-						text: 'Submit'
-					}
+				options: {
+
 				}
 			};
 		}

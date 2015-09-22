@@ -9,7 +9,8 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				globalOptions = _.merge({}, framework.options, formObject.options),
 				elements = framework.elements,
 				wrappers = framework.wrappers,
-				inputs = {};
+				inputs = {},
+				validifers = [];
 
 			renderItems(form.elements, attachTarget);
 
@@ -68,8 +69,8 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the specialized renderers, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
 
 				let boundRenderInput = _.wrap(formItem.name, renderInput),
-					render = {input: boundRenderInput, submit: renderSubmit, items: renderItems},
-					$element = frameworkItem.renderer.call(options, options, $subElement, render);
+					render = {input: boundRenderInput, submit: renderSubmit, items: renderItems, validity: renderValidity},
+					$element = frameworkItem.renderer.call(options, options, render, $subElement);
 
 				/*
 				//handle input fields for noninheritance renders
@@ -90,10 +91,10 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				//wrap the rendered element, with options and global options as arguments, and options as this
 
-				if (frameworkItem.wrapper) {
-					let wrapper = framework.wrappers[frameworkItem.wrapper];
+				if (frameworkItem.wrapper !== false) {
+					let wrapper = framework.wrappers[_.isString(frameworkItem.wrapper) ? frameworkItem.wrapper : 'default'];
 					if (wrapper instanceof Function) {
-						$element = wrapper.call(options, options, globalOptions, $element)
+						$element = wrapper.call(options, $element, globalOptions, options)
 					} else {
 						console.error(`Render Error: Wrapper ${frameworkItem.wrapper} missing`);
 					}
@@ -126,6 +127,8 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				}
 
 				inputs[name] = outputFn;
+
+				return input;
 			}
 
 			function renderSubmit(element, processorFn = _.identity) {
@@ -144,6 +147,32 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					console.error('Render Error: Trying to register a submit with a nonelement (argument ', element, ' should be $ or DOM element');
 				}
 
+				return element;
+
+			}
+
+			function renderValidity(validifer, validCB, invalidCB) {
+
+				if(validifer[0]) validifer = validifer[0];
+
+				if(validifer.reportValidity) validifer = validifer.reportValidity;
+				else if (validifer.checkValidity) validifer = validifer.checkValidity;
+
+				if(validifer instanceof Function) {
+					validifers.push([validifer, validCB, invalidCB]);
+				} else {
+					console.error('Render error: Invalid validifer ', validifer, '. Must be a function or an element with browser input validation');
+				}
+			}
+
+
+			//iterates through every validifier, calling the appropriate callback, then finally returns whether every validifer returned true or not
+			function checkValidity() {
+				return _.every(validifers, function([validifer, validCB, invalidCB]) {
+					let valid = validifer(globalOptions);
+					(valid ? validCB : invalidCB)();
+					return valid;
+				});
 			}
 
 			//defined in this block to avoid instantiating repeatedly
