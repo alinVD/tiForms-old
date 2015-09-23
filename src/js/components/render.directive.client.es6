@@ -14,13 +14,13 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			renderItems(form.elements, attachTarget);
 
-			function renderItems(formItem, parentElement) {
+			function renderItems(formItem, parentElement, advRender = true) {
 
 				if (formItem instanceof Array) {
-					_.forEach(formItem, (unwrappedItem) => compileItem(unwrappedItem, parentElement));
+					_.forEach(formItem, (unwrappedItem) => compileItem(unwrappedItem, parentElement, advRender));
 				} else {
 
-					let $element = renderItem(formItem);
+					let $element = renderItem(formItem, advRender);
 
 					parentElement.append(formItem.$element);
 
@@ -28,11 +28,13 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			}
 
-			function renderItem(formItem, type = formItem.type) {
+			function renderItem(formItem, advRender, subtype) {
 
 				//ensure that user's input item has a defined type, the one required field for user inputs
 
-				if (!formItem.type) {
+				let type = subtype || formItem.type;
+
+				if (!type) {
 					console.error('Render Error: Form item ', formItem, 'has no type');
 					return $();
 				}
@@ -54,9 +56,14 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				}
 
 				//handle the framework item inheritance; all potential error in this process are handled in the recursive call and return an empty jQuery if it fails
+				//continues disabling advanced rendering if already told to in the inheritance stack, otherwises uses the frameworkItem's value if it exists, finally defaults to allowing advanced rendering
 
 				if (frameworkItem.sub) {
-					$subElement = renderItem(formItem, formItem.sub);
+					$subElement = renderItem(
+						formItem,
+						advRender !== true ? advRender : (frameworkItem.advRender !== undefined ? frameworkItem.advRender : advRender),
+						frameworkItem.sub
+					);
 				}
 
 				//honor the frameworks default options for the input type.
@@ -66,28 +73,22 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				let options = _.merge({}, frameworkItem.defaults, formItem)
 
-				//call the current renderer, passing in the options, the rendered element it inherits from (or nothing), and the specialized renderers, and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
+				//call the current renderer, passing in:
+				//the options
+				//the specialized renderers, either with their correct behavior or with all functions set as the identity function
+				//the rendered element it inherits from (or nothing)
+				//and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
 
 				let boundRenderInput = _.wrap(formItem.name, renderInput),
-					render = {input: boundRenderInput, submit: renderSubmit, items: renderItems, validity: renderValidity},
+					render = (advRender ? _.identity : _.mapValues)({
+						input: boundRenderInput,
+						submit: renderSubmit,
+						items: renderItems,
+						validity: renderValidity
+					}, () => _.identity),
 					$element = frameworkItem.renderer.call(options, options, render, $subElement);
 
-				/*
-				//handle input fields for noninheritance renders
-				
-				if(frameworkItem.input && type === formItem.type) {
-					if(!formItem.name) {
-						console.log('Render Error: Form item ', formItem, 'is an input element without a name');
-					} else if (inputs[formItem.name]) {
-						console.log('Render Error: Form item ', formitem, 'is an input element reusing a name (every single form item\'s name field must be unique)');
-					} else {
-						let inputFn = (frameworkItem.input instanceof Function ? frameworkItem.input : defaultInputFn);
-						inputs[formItem.name] = function() {
-							inputFn.call(formItem, formItem, $element);
-						}
-					}
-				}
-				*/
+				if (subtype) return $element;
 
 				//wrap the rendered element, with options and global options as arguments, and options as this
 
@@ -112,7 +113,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				let outputFn = $.noop;
 
-				if(input instanceof Function) {
+				if (input instanceof Function) {
 					outputFn = input;
 				} else if (input instanceof $) {
 					outputFn = input.val;
@@ -122,7 +123,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					console.error('Render Error: Trying to register an input improperly (argument ', input, ' needs to be a function or browser element)');
 				}
 
-				if(inputs[name]) {
+				if (inputs[name]) {
 					console.warn(`Render Warning: You are reusing the same name ${name} for an input`);
 				}
 
@@ -132,16 +133,16 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 			}
 
 			function renderSubmit(element, processorFn = _.identity) {
-				
+
 				function getValues() {
 					return _.mapValues(inputs, (evalFn) => eval());
 				}
 
-				if(element instanceof HTMLElement) {
+				if (element instanceof HTMLElement) {
 					element = $(element);
 				}
 
-				if(element instanceof $) {
+				if (element instanceof $) {
 					element.click(_.flow(getValues, intermediateFn, submitCB));
 				} else {
 					console.error('Render Error: Trying to register a submit with a nonelement (argument ', element, ' should be $ or DOM element');
@@ -153,12 +154,12 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			function renderValidity(validifer, validCB, invalidCB) {
 
-				if(validifer[0]) validifer = validifer[0];
+				if (validifer[0]) validifer = validifer[0];
 
-				if(validifer.reportValidity) validifer = validifer.reportValidity;
+				if (validifer.reportValidity) validifer = validifer.reportValidity;
 				else if (validifer.checkValidity) validifer = validifer.checkValidity;
 
-				if(validifer instanceof Function) {
+				if (validifer instanceof Function) {
 					validifers.push([validifer, validCB, invalidCB]);
 				} else {
 					console.error('Render error: Invalid validifer ', validifer, '. Must be a function or an element with browser input validation');
