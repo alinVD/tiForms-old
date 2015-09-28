@@ -73,11 +73,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 				let options = _.merge({}, frameworkItem.defaults, formItem)
 
-				//call the current renderer, passing in:
-				//the options
-				//the specialized renderers, either with their correct behavior or with all functions set as the identity function
-				//the rendered element it inherits from (or nothing)
-				//and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
+				//generate all render functions, disabling certain behaviors if needed
 
 				let boundRenderInput = _.wrap(formItem.name, renderInput),
 					render = (advRender ? _.identity : _.mapValues)({
@@ -86,7 +82,17 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 						items: renderItems,
 						validity: renderValidity
 					}, () => _.identity),
-					$element = frameworkItem.renderer.call(options, options, render, $subElement);
+					wrap = makeWrappers(frameworkItem.wrapper);
+
+				render.wrap = wrap; //added here to not be affected by advRender disabling
+
+				//call the current renderer, passing in:
+				//the options
+				//the specialized renderers, either with their correct behavior or with all functions set as the identity function
+				//the rendered element it inherits from (or nothing)
+				//and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
+
+				let $element = frameworkItem.renderer.call(options, options, render, $subElement);
 
 				//if needed for inheritance, return the element without wrapping
 				
@@ -107,6 +113,43 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				return $element;
 
 
+			}
+
+			function makeWrappers(wrapper) {
+				//handle easiest case of false (no wrapper, only needs to be used for frameworks with no default wrapper)
+				//otherwise, check if default wrapper should be used
+				if (wrapper === false) {
+					return null;
+				} else if (wrapper === undefined) {
+					wrapper = 'default';
+				}
+
+				//if input is a string (or default case), simply return the wrapperFn with that name
+				if(_.isString(wrapper)) {
+					let wrapperFn = framework.wrappers[wrapper];
+					if(wrapperFn instanceof Function) {
+						wrapperFn[wrapper] = wrapperFn; //the function will have a property pointing to itself, to always allow wrap.wrapperName to be used even if it isnt an object from the array case 
+						wrapper = wrapperFn;
+					} else {
+						console.error(`Unable to find wrapperFn ${wrapper}`);
+						return null;
+					}
+				} else if(wrapper instanceof Array) { //if wrapper is an array, transform it into an object with (key, value)::(wrapperName, wrapperFn)
+					wrapper = _.reduce(wrapper, function(agg, wrapperName) {
+						let wrapperFn = framework.wrappers[wrapperName];
+						if(wrapperFn instanceof Function) {
+							agg[wrapperName] = wrapperFn;
+						} else {
+							console.error(`Unable to find wrapperFn ${wrapperName}`);
+						}
+						return agg;
+					}, {});
+				} else { //no supported logic for input type (null, number and object)
+					console.error(`Unable to process wrapper ${wrapper} (should be false, a string, an array, or undefined)`);
+					return null;
+				}
+
+				return wrapper;
 			}
 
 			function renderInput(boundName, input, name = boundName) {
