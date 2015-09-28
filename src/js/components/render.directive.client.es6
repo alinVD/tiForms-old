@@ -93,23 +93,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				//and setting this to options (to allow for the renderer function to have no arguments defined in the simplest case)
 
 				let $element = frameworkItem.renderer.call(options, options, render, $subElement);
-
-				//if needed for inheritance, return the element without wrapping
 				
-				if (subtype) return $element;
-
-				//otherwise wrap the rendered element, with options and global options as arguments, and options as this
-
-				if (frameworkItem.wrapper !== false) {
-					let wrapper = framework.wrappers[_.isString(frameworkItem.wrapper) ? frameworkItem.wrapper : 'default'];
-					if (wrapper instanceof Function) {
-						$element = wrapper.call(options, $element, globalOptions, options)
-					} else {
-						console.error(`Render Error: Wrapper ${frameworkItem.wrapper} missing`);
-					}
-				}
-
-
 				return $element;
 
 
