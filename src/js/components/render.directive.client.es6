@@ -10,19 +10,22 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				elements = framework.elements,
 				wrappers = framework.wrappers,
 				inputs = {},
-				validifers = [];
+				validifers = [],
+				$root;
 
-			renderItems(form.elements, attachTarget);
+			if(framework.root) $root = framework.root(globalOptions, parentElement);
+
+			renderItems(form.elements, $root || parentElement);
 
 			function renderItems(formItem, parentElement, advRender = true) {
 
 				if (formItem instanceof Array) {
-					_.forEach(formItem, (unwrappedItem) => compileItem(unwrappedItem, parentElement, advRender));
+					_.forEach(formItem, (unwrappedItem) => renderItems(unwrappedItem, parentElement, advRender));
 				} else {
 
 					let $element = renderItem(formItem, advRender);
 
-					parentElement.append(formItem.$element);
+					parentElement.append($element);
 
 				}
 
@@ -82,7 +85,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 						items: renderItems,
 						validity: renderValidity
 					}, () => _.identity),
-					wrap = makeWrappers(frameworkItem.wrapper);
+					wrap = makeWrappers(frameworkItem.wrapper, options);
 
 				render.wrap = wrap; //added here to not be affected by advRender disabling
 
@@ -99,7 +102,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			}
 
-			function makeWrappers(wrapper) {
+			function makeWrappers(wrapper, options) {
 				//handle easiest case of false (no wrapper, only needs to be used for frameworks with no default wrapper)
 				//otherwise, check if default wrapper should be used
 				if (wrapper === false) {
@@ -112,7 +115,8 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				if(_.isString(wrapper)) {
 					let wrapperFn = framework.wrappers[wrapper];
 					if(wrapperFn instanceof Function) {
-						wrapperFn[wrapper] = wrapperFn; //the function will have a property pointing to itself, to always allow wrap.wrapperName to be used even if it isnt an object from the array case 
+						wrapperFn = _.wrap(options, _.wrap(globalOptions, wrapperFn)); 
+						wrapperFn[wrapper] = wrapperFn //the function will have a property pointing to itself, to always allow wrap.wrapperName to be used even if it isnt an object from the array case 
 						wrapper = wrapperFn;
 					} else {
 						console.error(`Unable to find wrapperFn ${wrapper}`);
@@ -122,7 +126,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					wrapper = _.reduce(wrapper, function(agg, wrapperName) {
 						let wrapperFn = framework.wrappers[wrapperName];
 						if(wrapperFn instanceof Function) {
-							agg[wrapperName] = wrapperFn;
+							agg[wrapperName] = _.wrap(options, _.wrap(globalOptions, wrapperFn)); ;
 						} else {
 							console.error(`Unable to find wrapperFn ${wrapperName}`);
 						}
@@ -146,7 +150,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					outputFn = input;
 				} else if (input instanceof $) {
 					outputFn = input.val;
-				} else if (input instance of HTMLElement) {
+				} else if (input instanceof HTMLElement) {
 					outputFn = $(input).val;
 				} else {
 					console.error('Render Error: Trying to register an input improperly (argument ', input, ' needs to be a function or browser element)');
