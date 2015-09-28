@@ -3,7 +3,28 @@ angular.module('tiForms').factory('tiForms', [
 	function() {
 		function frameworks() {
 			return {
+				root: function(globalOptions, $element) {
+					$element.addClass('form-horizontal');
+				},
 				items: {
+					submit: {
+						renderer: function(options, render) {
+							let $submit = $('<button>');
+
+							$submit.text(options.text);
+
+							//adds classes btn and btn-${status} if it is recognized, otherwise btn-default
+							$submit.addClass(`btn btn-${_.includes(['default', 'primary', 'success', 'info', 'warning', 'danger', 'link'], options.status) ? options.status : 'default'}`);
+
+							return render.wrap($submit);
+						},
+						defaults: {
+							status: 'primary',
+							size: '',
+							label: '',
+							text: 'Submit'
+						}
+					},
 					input: {
 						renderer: function(options, render) {
 							let $input = $('<input>');
@@ -23,7 +44,7 @@ angular.module('tiForms').factory('tiForms', [
 								$input.closest('form-group').addClass('has-error').removeClass('has-success');
 							});
 
-							if(options.group && options.group.left || options.group.right) {
+							if(options.group && (options.group.left || options.group.right)) {
 
 								$input = $('<div class="input-group">').append($input);
 
@@ -36,70 +57,36 @@ angular.module('tiForms').factory('tiForms', [
 								if(options.group.right) $input.append($(`<span class="input-group-addon">${options.group.right}<span>`));
 							} 
 
-							return $input;
+							return render.wrap($input);
 						}
 					},
 					text: {
-						sub: input;
+						sub: 'input',
 						renderer: function(options, render, $subElement) {
 							return $subElement;
 						}
 					},
 					password: {
-						sub: input;
+						sub: 'input',
 						renderer: function(options, render, $subElement) {
 							return $subElement;
 						}
 					},
 					email: {
-						sub: input;
+						sub: 'input',
 						renderer: function(options, render, $subElement) {
 							return $subElement;
 						}
 					},
 					number: {
-						sub: input;
+						sub: 'input',
 						renderer: function(options, render, $subElement) {
 							return $subElement;
 						}
 					},
 					select: {
 						renderer: function(options, render) {
-							let $select = $('<select>');
-
-							$select.attr({
-								placeholder: options.placeholder,
-								type: this.type
-							});
-
-							$select.addClass('form-control');
-
-							_.forEach(options.options, function(optionName, optionValue) { //option name is the value in the options object, option value is the key, thus the key/value arguments appear transposed
-								$(`<option value="${optionValue}">${optionName}</option>`).appendTo($select);
-							});
-
-							render.input($select);
-
-							render.validity($select, function() {
-								$select.closest('form-group').removeClass('has-error').addClass('has-success');
-							}, function() {
-								$select.closest('form-group').addClass('has-error').removeClass('has-success');
-							});
-
-							if(options.group && options.group.left || options.group.right) {
-
-								$select = $('<div class="input-group">').append($select);
-
-								if(options.group.size) {
-									if(_.includes(['l', 'lg', 'large'], options.group.size)) $select.addClass('input-group-lg');
-									else if(_.includes(['s', 'sm', 'small'], options.group.size)) $select.addClass('input-group-sm');
-								}
-
-								if(options.group.left) $select.append($(`<span class="input-group-addon">${options.group.left}<span>`));
-								if(options.group.right) $select.append($(`<span class="input-group-addon">${options.group.right}<span>`));
-							} 
-
-							return $select;
+							//figure out how to make this inherit from the input type properly even though a tag has to be swapped (and keep certain behavior)
 						}
 					},
 					confirmPassword: {
@@ -134,30 +121,33 @@ angular.module('tiForms').factory('tiForms', [
 					}
 				},
 				wrappers: {
-					default: function($element, globalOptions, options) {
-						let columnSize = globalOptions.columnSize,
+					default: function(globalOptions, options, $element) {
+						let labelSizes = globalOptions.labelSize,
 							sizes = ['xs', 'sm', 'md', 'lg'];
 
-						if(columnSize instanceof Array) columnSize = {xs: size});
+						//standardize inputs as an object with (key, value)::(sizeName, sizeValue), size name is bootstrap size name e.g. 'xs'
+
+						if(_.isNumber(labelSizes)) { //if only one number is given, assume it is meant for all displays
+							labelSizes = {xs: labelSizes};
+						} else if(labelSizes instanceof Array) { //if multiple numbers are given in sequence, assume they describe the sizes from xs up to lg
+							labelSizes = _.reduce(labelSizes, (agg, size, index) => agg[sizes[index]] = size, {});
+						}
+
 
 						let $group = $('<div class="form-group">'),
-							$label = $('<label class="control-label>').appendTo($group),
+							$label = $(`<label class="control-label">${options.label}</label>`).appendTo($group),
 							$column = $('<div>').append($element).appendTo($group);
 
-						_.forEach(sizes, function(size) {
-							let arr = columnSize[size]
-							if(arr && arr.length > 1) {
-								$label.addClass(`col-${size}-${arr[0]}`);
-								$column.addClass(`col-${size}.${arr[1]}`);
-							}
-						}
+						_.forEach(labelSizes, function(size, sizeName) {
+							$label.addClass(`col-${sizeName}-${size}`);
+							$column.addClass(`col-${sizeName}-${12 - size}`); //magic number 12 comes from number of bootstrap columns
+						})
 
 						return $group;
 					}
 				},
 				options: {
-					labelSize: 4,
-					inputSize: 8
+					labelSize: 4
 				}
 			};
 		}
