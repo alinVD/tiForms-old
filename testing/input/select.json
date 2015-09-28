@@ -1,0 +1,13 @@
+{
+	"name": "Test Select",
+	"elements": [{
+		"type": "text",
+		"name": "text",
+		"label": "Test Select",
+		"options": {
+			"val1": "name1",
+			"val2": "name2",
+			"val3": "name3"
+		}
+	}]
+}

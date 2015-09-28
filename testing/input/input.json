@@ -1,0 +1,8 @@
+{
+	"name": "Test Base Input",
+	"elements": [{
+		"type": "input",
+		"name": "test",
+		"label": "Test Input"
+	}]
+}

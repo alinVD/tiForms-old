@@ -88,9 +88,11 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 					}, () => _.identity),
 					$element = frameworkItem.renderer.call(options, options, render, $subElement);
 
+				//if needed for inheritance, return the element without wrapping
+				
 				if (subtype) return $element;
 
-				//wrap the rendered element, with options and global options as arguments, and options as this
+				//otherwise wrap the rendered element, with options and global options as arguments, and options as this
 
 				if (frameworkItem.wrapper !== false) {
 					let wrapper = framework.wrappers[_.isString(frameworkItem.wrapper) ? frameworkItem.wrapper : 'default'];

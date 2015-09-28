@@ -1,0 +1,28 @@
+{
+	"name": "New Student",
+	"elements": [{
+		"type": "text",
+		"name": "firstName",
+		"label": "First Name"
+	}, {
+		"type": "text",
+		"name": "lastName",
+		"label": "Last Name"
+	}, {
+		"type": "text",
+		"name": "middleInitial",
+		"label": "Middle Initial",
+		"length": 1 
+	}, {
+		"type": "number",
+		"name": "age",
+		"label": "Age",
+		"length": [1, 2]
+	}, {
+		"type": "confirmEmail",
+		"name": "email"
+	}, {
+		"type": "confirmPassword",
+		"name": "password"
+	}]
+}
