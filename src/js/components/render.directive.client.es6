@@ -149,9 +149,9 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				if (input instanceof Function) {
 					outputFn = input;
 				} else if (input instanceof $) {
-					outputFn = input.val;
+					outputFn = input.val.bind(input);
 				} else if (input instanceof HTMLElement) {
-					outputFn = $(input).val;
+					outputFn = $(input).val.bind(input);
 				} else {
 					console.error('Render Error: Trying to register an input improperly (argument ', input, ' needs to be a function or browser element)');
 				}
@@ -168,7 +168,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 			function renderSubmit(element, processorFn = _.identity) {
 
 				function getValues() {
-					return _.mapValues(inputs, (evalFn) => eval());
+					return _.mapValues(inputs, (evalFn) => evalFn());
 				}
 
 				if (element instanceof HTMLElement) {
@@ -176,7 +176,7 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				}
 
 				if (element instanceof $) {
-					element.click(_.flow(getValues, intermediateFn, submitCB));
+					element.click(_.flow(getValues, processorFn, submitCB));
 				} else {
 					console.error('Render Error: Trying to register a submit with a nonelement (argument ', element, ' should be $ or DOM element');
 				}
@@ -221,7 +221,9 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			scope.$watch(attrs.tiFormRender, function(newForm) {
 				element.empty();
-				compileForm(newForm, tiForms.frameworks(), element, (output) => scope.$apply((scope) => scope.output = output));
+				compileForm(newForm, tiForms.frameworks(), element, (output) => {
+					scope.$apply((scope) => scope.output = output)
+				});
 			}, true);
 
 		};
