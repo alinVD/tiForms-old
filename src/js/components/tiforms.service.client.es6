@@ -16,6 +16,8 @@ angular.module('tiForms').factory('tiForms', [
 							//adds classes btn and btn-${status} if it is recognized, otherwise btn-default
 							$submit.addClass(`btn btn-${_.includes(['default', 'primary', 'success', 'info', 'warning', 'danger', 'link'], options.status) ? options.status : 'default'}`);
 
+							render.submit($submit);
+
 							return render.wrap($submit);
 						},
 						defaults: {
