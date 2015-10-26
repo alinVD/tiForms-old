@@ -1,6 +1,6 @@
-angular.module('tiForms').directive('tiFormRender', ['tiForms',
+angular.module('tiForms').directive('tiFormRender', ['tiForms', '$compile',
 
-	function(tiForms) {
+	function(tiForms, $compile) {
 
 		function compileForm(formObject, frameworks, parentElement, submitCB) {
 
@@ -187,14 +187,16 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 
 			function renderValidity(validifer, validCB, invalidCB) {
 
-				if (validifer[0]) validifer = validifer[0];
+				if (validifer instanceof Function) {
+					validifers.push([validifer, validCB, invalidCB]);
+					return;
+				}
+
+				if (validifer[0]) validifer = validifer[0]; //unwraps jquery objects to hook into the HTMLElement itself
 
 				if (validifer.reportValidity) validifer = validifer.reportValidity;
 				else if (validifer.checkValidity) validifer = validifer.checkValidity;
-
-				if (validifer instanceof Function) {
-					validifers.push([validifer, validCB, invalidCB]);
-				} else {
+				else {
 					console.error('Render error: Invalid validifer ', validifer, '. Must be a function or an element with browser input validation');
 				}
 			}
@@ -224,6 +226,9 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms',
 				compileForm(newForm, tiForms.frameworks(), element, (output) => {
 					scope.$apply((scope) => scope.output = output)
 				});
+				var template = element.html();
+				element.empty();
+				var attachedTemplate = $compile(template)(scope).appendTo(element);
 			}, true);
 
 		};

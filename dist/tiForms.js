@@ -5,7 +5,7 @@ angular.module('tiForms', []);
 
 var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
 
-angular.module('tiForms').directive('tiFormRender', ['tiForms', function (tiForms) {
+angular.module('tiForms').directive('tiFormRender', ['tiForms', '$compile', function (tiForms, $compile) {
 
 	function compileForm(formObject, frameworks, parentElement, submitCB) {
 
@@ -196,13 +196,14 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms', function (tiForm
 
 		function renderValidity(validifer, validCB, invalidCB) {
 
-			if (validifer[0]) validifer = validifer[0];
-
-			if (validifer.reportValidity) validifer = validifer.reportValidity;else if (validifer.checkValidity) validifer = validifer.checkValidity;
-
 			if (validifer instanceof Function) {
 				validifers.push([validifer, validCB, invalidCB]);
-			} else {
+				return;
+			}
+
+			if (validifer[0]) validifer = validifer[0]; //unwraps jquery objects to hook into the HTMLElement itself
+
+			if (validifer.reportValidity) validifer = validifer.reportValidity;else if (validifer.checkValidity) validifer = validifer.checkValidity;else {
 				console.error('Render error: Invalid validifer ', validifer, '. Must be a function or an element with browser input validation');
 			}
 		}
@@ -238,6 +239,9 @@ angular.module('tiForms').directive('tiFormRender', ['tiForms', function (tiForm
 					return scope.output = output;
 				});
 			});
+			var template = element.html();
+			element.empty();
+			var attachedTemplate = $compile(template)(scope).appendTo(element);
 		}, true);
 	};
 }]);
@@ -247,24 +251,13 @@ angular.module('tiForms').controller('testCtrl', ['$scope', function ($scope) {
 	$scope.testForm = {
 		"name": "Test Inputs",
 		"elements": [{
-			"type": "text",
+			"type": "input",
 			"name": "text",
 			"label": "Test Text"
 		}, {
-			"type": "email",
-			"name": "email",
-			"label": "Test email"
-		}, {
-			"type": "password",
-			"name": "password",
-			"label": "Test password"
-		}, {
-			"type": "number",
-			"name": "number",
-			"label": "Test Number"
-		}, {
-			"type": "submit",
-			"text": "Test Submit"
+			"type": "input",
+			"name": "test",
+			"label": "Test Text"
 		}]
 	};
 }]);
@@ -272,7 +265,7 @@ angular.module('tiForms').controller('testCtrl', ['$scope', function ($scope) {
 
 angular.module('tiForms').factory('tiForms', [function () {
 	function frameworks() {
-		return {
+		var bootstrap = {
 			root: function root(globalOptions, $element) {
 				$element.addClass('form-horizontal');
 			},
@@ -424,6 +417,62 @@ angular.module('tiForms').factory('tiForms', [function () {
 				labelSize: 4
 			}
 		};
+
+		var material = {
+			options: {
+				layout: 'row'
+			},
+			root: function root(globalOptions, $element) {
+				var $content = $('<md-content>');
+
+				$content.attr('layout', globalOptions.layout);
+
+				$content.attr('layout-padding', '');
+
+				$content.appendTo($element);
+
+				return $content;
+			},
+			items: {
+				container: {
+					options: {
+						layout: 'row'
+					},
+					renderer: function renderer(options, render) {
+						var $container = $('<div>');
+
+						$container.attr('layout', options.layout);
+
+						return $container;
+					}
+				},
+				input: {
+					options: {},
+					renderer: function renderer(options, render) {
+						var $input = $('<input>');
+
+						render.input($input);
+
+						return render.wrap($input);
+					}
+				}
+			},
+			wrappers: {
+				'default': function _default(globalOptions, options, $element) {
+					var $label = $('<label>');
+
+					$label.text(options.label);
+
+					var $inputContainer = $('<md-input-container>');
+
+					$inputContainer.append($label).append($element);
+
+					return $inputContainer;
+				}
+			}
+		};
+
+		return material;
 	}
 
 	return {

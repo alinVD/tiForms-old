@@ -3,24 +3,13 @@ angular.module('tiForms').controller('testCtrl', ['$scope',
 		$scope.testForm = {
 			"name": "Test Inputs",
 			"elements": [{
-				"type": "text",
+				"type": "input",
 				"name": "text",
 				"label": "Test Text"
 			}, {
-				"type": "email",
-				"name": "email",
-				"label": "Test email"
-			}, {
-				"type": "password",
-				"name": "password",
-				"label": "Test password"
-			}, {
-				"type": "number",
-				"name": "number",
-				"label": "Test Number"
-			}, {
-				"type": "submit",
-				"text": "Test Submit"
+				"type": "input",
+				"name": "test",
+				"label": "Test Text"
 			}]
 		};
 	}

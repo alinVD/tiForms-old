@@ -2,7 +2,7 @@ angular.module('tiForms').factory('tiForms', [
 
 	function() {
 		function frameworks() {
-			return {
+			var bootstrap = {
 				root: function(globalOptions, $element) {
 					$element.addClass('form-horizontal');
 				},
@@ -152,6 +152,64 @@ angular.module('tiForms').factory('tiForms', [
 					labelSize: 4
 				}
 			};
+
+			var material = {
+				options: {
+					layout: 'row'
+				},
+				root: function(globalOptions, $element) {
+					var $content = $('<md-content>');
+
+					$content.attr('layout', globalOptions.layout);
+
+					$content.attr('layout-padding', '');
+
+					$content.appendTo($element);
+
+					return $content;
+				},
+				items: {
+					container: {
+						options: {
+							layout: 'row'
+						},
+						renderer: function(options, render) {
+							var $container = $('<div>');
+
+							$container.attr('layout', options.layout);
+
+							return $container;
+						}
+					},
+					input: {
+						options: {
+
+						},
+						renderer: function(options, render) {
+							var $input = $('<input>');
+
+							render.input($input);
+
+							return render.wrap($input);
+						}
+					}
+				},
+				wrappers: {
+					default: function(globalOptions, options, $element) {
+						var $label = $('<label>');
+
+						$label.text(options.label);
+
+						var $inputContainer = $('<md-input-container>');
+
+						$inputContainer.append($label).append($element);
+
+						return $inputContainer;
+					}
+				}
+			}
+
+			return material;
 		}
 
 		return {
